@@ -1,0 +1,8 @@
+[package]
+name = "grepboard"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+leptos = { version = "0.8.22", features = ["csr"] }
+pulldown-cmark = { version = "0.13.5", default-features = false, features = ["html"] }
