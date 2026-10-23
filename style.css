@@ -84,27 +84,27 @@ body {
   font: 14px/1.55 "IBM Plex Mono", ui-monospace, monospace;
 }
 
-/* The board: fills the window, with faint lines along every grid edge. */
+/* The board: fills the window, with faint lines along every grid edge.
+   Notes are positioned on it in whole cells, so the lines start at 0,0. */
 .board {
   position: relative;
   min-height: 100vh;
-  padding: var(--cell);
+  overflow: hidden;
   background-image:
     linear-gradient(to right, var(--line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--line) 1px, transparent 1px);
   background-size: var(--cell) var(--cell);
 }
 
-/* A note. Its colour comes from --accent, which each note will set for
-   itself later; until then every note is mauve. One flat colour: no border,
-   no shadow. */
+/* A note. Its position and size come from Rust (in grid cells), and its
+   colour from --accent, which each note will set for itself later; until
+   then every note is mauve. One flat colour: no border, no shadow. */
 .note {
   --accent: var(--mauve);
 
-  width: calc(var(--cell) * 9);
-  min-height: calc(var(--cell) * 5);
-  margin-bottom: var(--cell);
-  padding: 12px 14px;
+  position: absolute;
+  padding: 10px 12px;
+  overflow: auto;
 
   background: color-mix(in srgb, var(--accent) var(--tint), var(--base));
   border-radius: var(--radius);
@@ -116,7 +116,7 @@ body {
 .note textarea {
   display: block;
   width: 100%;
-  min-height: calc(var(--cell) * 5 - 24px);
+  height: 100%;
   padding: 0;
   border: 0;
   outline: none;

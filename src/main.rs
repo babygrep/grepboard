@@ -5,12 +5,45 @@ fn main() {
     leptos::mount::mount_to_body(App);
 }
 
+const CELL: i32 = 16; // constant cell type is i32, let CELL ∈ ℤ, CELL = 16
+
+#[derive(Clone)]
+struct NoteData {
+    id: u32,
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
+    text: String,
+}
+
 #[component] // function turns into component
 fn App() -> impl IntoView {
-    // impl = implement
-    view! { // view! turns HTML-esque code into rust at compile time, baby
-        <main class="board">
-            <Note text="What the fuck did you just fucking say about me, you little bitch?"/> // humorous placeholder text
+    let (notes, _set_notes) = signal(vec![
+        // vec! = macro that makes note from list Vec<NoteData>
+        NoteData {
+            id: 1,
+            x: 2,
+            y: 2,
+            w: 14,
+            h: 8,
+            text: "# hello\nfirst note".to_string(),
+        },
+        NoteData {
+            id: 2,
+            x: 18,
+            y: 4,
+            w: 12,
+            h: 6,
+            text: "- [ ] second".to_string(),
+        },
+    ]);
+
+    view! {
+        <main class="board" style=format!("--cell: {CELL}px")>
+            <For each=move || notes.get() key=|note| note.id let(note)>
+                <Note note=note />
+            </For>
         </main>
     }
 }
@@ -76,9 +109,16 @@ fn render_markdown(source: &str) -> String {
 }
 
 #[component]
-fn Note(text: &'static str) -> impl IntoView {
-    // &'static str = borrowed string literal, in program file
-    let (content, set_content) = signal(text.to_string()); // let = creates a variable, signal (leptos container) tuple (getter, setter)
+fn Note(note: NoteData) -> impl IntoView {
+    let style = format!(
+        // ! after a word, like 'format!' means it's a macro which runs before program compiles, function runs while program runs
+        "left: {}px; top: {}px; width: {}px; height: {}px;",
+        note.x * CELL,
+        note.y * CELL,
+        note.w * CELL,
+        note.h * CELL,
+    );
+    let (content, set_content) = signal(note.text);
     let (editing, set_editing) = signal(false); // bool start false (the sims 1 cheat was my first bool, good times)
     let textarea_ref: NodeRef<html::Textarea> = NodeRef::new(); // NodeRef = slot for page element
 
@@ -90,7 +130,7 @@ fn Note(text: &'static str) -> impl IntoView {
     });
 
     view! {
-        <div class="note" on:click=move |_| set_editing.set(true)>
+        <div class="note" style=style on:click=move |_| set_editing.set(true)>
             <Show
                 when=move || editing.get() // when when is true
                 fallback=move || view! {
