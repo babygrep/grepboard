@@ -306,7 +306,15 @@ fn Note(note: NoteData, notes: RwSignal<Vec<NoteData>>) -> impl IntoView {
     };
 
     view! {
-        <div class="note" style=style on:click=move |_| set_editing.set(true)>
+        <div
+            class="note"
+            node_ref=note_ref
+            style=style
+            on:pointerdown=start_move
+            on:pointermove=during_gesture
+            on:pointerup=end_gesture
+            on:click=open_editor
+        >
             <Show
                 when=move || editing.get() // when when is true
                 fallback=move || view! {
@@ -320,6 +328,15 @@ fn Note(note: NoteData, notes: RwSignal<Vec<NoteData>>) -> impl IntoView {
                     on:blur=move |_| set_editing.set(false)
                 />
             </Show>
+            <button
+                class="delete"
+                title="Delete note"
+                on:pointerdown=|ev| ev.stop_propagation()
+                on:click=delete
+            >
+                "x"
+            </button>
+            <div class="resize" on:pointerdown=start_resize></div>
         </div>
     }
 }
