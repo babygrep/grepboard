@@ -94,7 +94,7 @@ fn App() -> impl IntoView {
         >
             <div class="draft" style=draft_style></div>
             <For each=move || notes.get() key=|note| note.id let(note)>
-                <Note note=note notes=notes />
+                <Note note=note on_delete=move || notes.update(|list| list.retain(|n| n.id != note.id)) /> // app hands note function a closure that deletes the note
             </For>
         </main>
     }
@@ -185,14 +185,9 @@ enum Gesture {
 }
 
 #[component]
-fn Note(note: NoteData, notes: RwSignal<Vec<NoteData>>) -> impl IntoView {
+fn Note(note: NoteData, on_delete: impl Fn() + 'static) -> impl IntoView {
     let NoteData {
-        id,
-        x,
-        y,
-        w,
-        h,
-        text,
+        x, y, w, h, text, ..
     } = note;
     let (editing, set_editing) = signal(false); // bool start false (the sims 1 cheat was my first bool, good times)
     let gesture = RwSignal::new(None::<Gesture>);
@@ -302,13 +297,13 @@ fn Note(note: NoteData, notes: RwSignal<Vec<NoteData>>) -> impl IntoView {
 
     let delete = move |ev: ev::MouseEvent| {
         ev.stop_propagation();
-        notes.update(|list| list.retain(|n| n.id != id));
+        on_delete();
     };
 
     view! {
         <div
             class="note"
-            node_ref=note_ref
+            node_ref=note_ref // node_ref is leptos attribute, note_ref is my variable
             style=style
             on:pointerdown=start_move
             on:pointermove=during_gesture
