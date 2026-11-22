@@ -127,9 +127,19 @@ fn render_markdown(source: &str) -> String {
     options.insert(Options::ENABLE_TASKLISTS);
     options.insert(Options::ENABLE_TABLES);
 
+    let mut task_index = 0;
+
     let events = Parser::new_ext(source, options).map(|event| match event {
         // parser with extra options (new_ext) reads markdown
         Event::Html(raw) | Event::InlineHtml(raw) => Event::Text(raw),
+        Event::TaskListMarker(checked) => {
+            let index = task_index; // keeps current number for this checkbox
+            task_index += 1; // increases checkbox counter by one
+            let checked_attribute = if checked { "checked" } else { "" };
+            Event::Html(CowStr::from(format!(
+                r#"<input type="checkbox" data-task-index="{index}" {checked_attribute}>"# // r# = rust raw string
+            )))
+        }
         Event::Start(Tag::Link {
             link_type,
             dest_url,
@@ -158,6 +168,22 @@ fn render_markdown(source: &str) -> String {
     let mut output = String::new();
     pulldown_cmark::html::push_html(&mut output, events); // push_html writes HTML for each item
     output
+}
+
+fn set_task_checked(source: &mut String, index: usize, checked: bool) {
+    let options =
+        Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TASKLISTS | Options::ENABLE_TABLES;
+    let marker = Parser::new_ext(source, options)
+        .into_offset_iter()
+        .filter_map(|(event, range)| match event {
+            Event::TaskListMarker(_) => Some(range),
+            _ => None,
+        })
+        .nth(index);
+
+    if let Some(range) = marker {
+        source.replace_range(range, if checked { "[x]" } else { "[ ]" });
+    }
 }
 
 fn snap(px: i32) -> i32 {
@@ -223,6 +249,9 @@ fn Note(note: NoteData, on_delete: impl Fn() + 'static) -> impl IntoView {
 
     let start_move = move |ev: ev::PointerEvent| {
         ev.stop_propagation();
+        if event_target::<leptos::web_sys::Element>(&ev).tag_name() == "INPUT" {
+            return;
+        }
         if editing.get() {
             return;
         }
@@ -295,6 +324,17 @@ fn Note(note: NoteData, on_delete: impl Fn() + 'static) -> impl IntoView {
         }
     };
 
+    let change_task = move |ev: ev::Event| {
+        // creates closure named change_task, browser event = ev
+        let input = event_target::<leptos::web_sys::HtmlInputElement>(&ev); // grabs checkbox that triggered event
+        let index = input
+            .get_attribute("data-task-index")
+            .and_then(|value| value.parse::<usize>().ok());
+        if let Some(index) = index {
+            text.update(|source| set_task_checked(source, index, input.checked()));
+        }
+    };
+
     let delete = move |ev: ev::MouseEvent| {
         ev.stop_propagation();
         on_delete();
@@ -308,12 +348,12 @@ fn Note(note: NoteData, on_delete: impl Fn() + 'static) -> impl IntoView {
             on:pointerdown=start_move
             on:pointermove=during_gesture
             on:pointerup=end_gesture
-            on:click=open_editor
+            on:dblclick=open_editor // on double click, open editor yay
         >
             <Show
                 when=move || editing.get() // when when is true
                 fallback=move || view! {
-                    <div class="rendered" inner_html=move || render_markdown(&text.get())></div>
+                    <div class="rendered" on:change=change_task inner_html=move || render_markdown(&text.get())></div>
                 } // fallback = when when is false
             >
                 <textarea
