@@ -25,7 +25,7 @@
   --lavender: #b7bdf8;
 
   /* Zed's Catppuccin Macchiato editor colours (editor.background is base). */
-  --line: #363a4f99; /* Zed's indent guides */
+  --line: #363a4f4d; /* Grid lines at about 30% opacity */
 
   /* How strongly a note's colour tints its paper. */
   --tint: 25%;
@@ -106,7 +106,11 @@ body {
   padding: 10px 12px;
   overflow: auto;
 
-  background: color-mix(in srgb, var(--accent) var(--tint), var(--base));
+  background: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--accent) var(--tint), var(--base)) 85%,
+    transparent
+  );
   border-radius: var(--radius);
 
   overflow-wrap: anywhere;
